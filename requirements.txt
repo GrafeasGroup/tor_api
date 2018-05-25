@@ -1,0 +1,3 @@
+cherrypy
+redis
+git+git://github.com/GrafeasGroup/tor_core.git
