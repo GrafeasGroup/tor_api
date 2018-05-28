@@ -9,24 +9,28 @@ from typing import List
 import cherrypy
 from tor_core.initialize import configure_logging
 from tor_core.initialize import configure_redis
+
 from users import User
 
-conf = {
-    '/': {
-        'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
-        'tools.response_headers.on': True,
-        'tools.response_headers.headers': [
-            ('Content-Type', 'application/json')
-        ],
-    },
-}
+
+# conf = {
+#     '/': {
+#         'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+#         'tools.response_headers.on': True,
+#         'tools.response_headers.headers': [
+#             ('Content-Type', 'application/json')
+#         ],
+#     },
+# }
 
 
 # noinspection SqlNoDataSourceInspection
 class DatabaseHandler(object):
     def __init__(self):
-        if not os.path.exists('./log.sqlite'):
-            self.conn = sqlite3.connect('./log.sqlite')
+        self.db_name = './log.sqlite'
+
+        if not os.path.exists(self.db_name):
+            self.conn = sqlite3.connect(self.db_name)
             c = self.conn.cursor()
             # make the users table; we want to know which API key corresponds
             # with which person and when that API key was granted.
@@ -36,7 +40,7 @@ class DatabaseHandler(object):
                   api_key TEXT PRIMARY KEY,
                   name TEXT,
                   is_admin BOOLEAN,
-                  date_granted TEXT,
+                  date_granted TIMESTAMP,
                   authed_by TEXT
                 )
                 """
@@ -46,61 +50,94 @@ class DatabaseHandler(object):
                 CREATE TABLE log (
                   api_key TEXT,
                   endpoint TEXT,
-                  date TEXT,
+                  date TIMESTAMP,
                   request_data TEXT,
                   FOREIGN KEY(api_key) REFERENCES users(api_key)
                 )
                 """
             )
             self.conn.commit()
-        else:
-            self.conn = sqlite3.connect('./log.sqlite')
+            self.conn.close()
+
+    def _create_conn(self) -> sqlite3.Connection:
+        return sqlite3.connect(self.db_name)
+
+    def _close_conn(self, conn: sqlite3.Connection) -> None:
+        conn.close()
 
     def write_log_entry(self, data: Dict) -> None:
-        c = self.conn.cursor()
+        conn = self._create_conn()
+        c = conn.cursor()
         c.execute(
             'INSERT INTO log VALUES (?,?,?,?)',
             (
                 data.get('api_key'),
                 data.get('endpoint'),
-                str(datetime.utcnow()),
+                str(datetime.now()),
                 data.get('request_data')
             )
         )
-        self.conn.commit()
+        conn.commit()
+        self._close_conn(conn)
 
     def write_user_entry(self, data: Dict) -> None:
-        c = self.conn.cursor()
+        conn = self._create_conn()
+        c = conn.cursor()
         c.execute(
             'INSERT INTO users VALUES (?,?,?,?,?)',
             (
                 data.get('api_key'),
                 data.get('name'),
-                data.get('is_admin'),
-                str(datetime.utcnow()),
+                1 if data.get('is_admin') is True else 0,
+                str(datetime.now()),
                 data.get('admin_api_key')
             )
         )
+        conn.commit()
+        self._close_conn(conn)
 
     def log(self, request: cherrypy.request, data: Dict) -> Dict:
         # TODO: stuff
         pass
 
-    def get_self(self, api_key: str) -> [str, None]:
-        import pdb
-        pdb.set_trace()
-        c = self.conn.cursor()
+    def get_self(self, api_key: str) -> [dict, None]:
+
+        def format_self(doohickey: tuple) -> Dict:
+            return {
+                'api_key': doohickey[0],
+                'username': doohickey[1],
+                'is_admin': True if doohickey[2] == 1 else False,
+                'date_granted': doohickey[3],
+                'authorized_by': doohickey[4]
+            }
+
+        conn = self._create_conn()
+        c = conn.cursor()
+
         result = c.execute(
-            'SELECT * FROM users WHERE api_key = ?', api_key
+            'SELECT * FROM users WHERE api_key = ?', (api_key,)
         )
         me = result.fetchone()
         if isinstance(me, tuple):
-            return ', '.join(me)
+            return format_self(me)
         # but seriously we should never hit this
         logging.error(
             'Received /me call for invalid api key {}'.format(api_key)
         )
+        self._close_conn(conn)
         return None
+
+    def is_admin(self, api_key: str) -> bool:
+        conn = self._create_conn()
+        c = conn.cursor()
+        result = c.execute(
+            """SELECT is_admin FROM users WHERE api_key IS ?""", (api_key,)
+        )
+        # SQL stores True / False as 1 and 0. Grab the first entry we receive,
+        # then return true if it's a 1 or false if it's a 0.
+        result = result.fetchone()[0] == 1
+        self._close_conn(conn)
+        return result
 
 
 class Tools(object):
@@ -149,11 +186,40 @@ class Tools(object):
 
         for field in fields:
             # is everything here that we asked for?
-            attempt = data.get(field, None)
-            if not attempt:
+            if field not in data:
                 return False
 
         return True
+
+    def get_missing_fields(
+            self,
+            fields: List[str],
+            request: cherrypy.request,
+    ) -> List[str]:
+        """
+        Take in a list of fields required to complete the request and send
+        back a list of the fields that weren't included so we can yell at the
+        client.
+
+        :param fields: The list of field names to look for
+        :param request: the cherrypy request object
+        :return: A list of field names that are not present in the request
+        """
+        if not self.has_json(request):
+            return fields
+
+        data = self.get_request_json(request)
+
+        missing_fields = list()
+        for field in fields:
+            attempt = data.get(field, None)
+            if not attempt:
+                missing_fields.append(field)
+        return missing_fields
+
+    def missing_fields_response(self, required_fields, request):
+        ms = self.get_missing_fields(required_fields, request)
+        return self.response_message_error_fields(400, ms)
 
     def response_message_base(
             self,
@@ -204,8 +270,9 @@ class Tools(object):
         return m
 
     def validate_request(self, request: cherrypy.request) -> bool:
-        # TODO validate API key
-        pass
+        return self.db.is_admin(
+            self.get_request_json(cherrypy.request).get('api_key')
+        )
 
 
 class Posts(Tools):
@@ -214,40 +281,15 @@ class Posts(Tools):
     # def __init__(self):
     #     super().__init__()
 
-    def get_missing_fields(
-            self,
-            fields: List[str],
-            request: cherrypy.request,
-    ) -> List[str]:
-        """
-        Take in a list of fields required to complete the request and send
-        back a list of the fields that weren't included so we can yell at the
-        client.
-
-        :param fields: The list of field names to look for
-        :param request: the cherrypy request object
-        :return: A list of field names that are not present in the request
-        """
-        if not self.has_json(request):
-            return fields
-
-        data = self.get_request_json(request)
-
-        missing_fields = List
-        for field in fields:
-            attempt = data.get(field, None)
-            if not attempt:
-                missing_fields.append(field)
-        return missing_fields
-
     @cherrypy.expose()
     @cherrypy.tools.json_in(force=False)
     @cherrypy.tools.json_out()
     def claim(self):
         required_fields = ['api_key', 'post_id']
         if not self.validate_json(cherrypy.request, required_fields):
-            ms = self.get_missing_fields(required_fields, cherrypy.request)
-            return self.response_message_error_fields(400, ms)
+            return self.missing_fields_response(
+                required_fields, cherrypy.request
+            )
 
         data = self.get_request_json(cherrypy.request)
 
@@ -261,8 +303,9 @@ class Posts(Tools):
     def done(self):
         required_fields = ['api_key', 'post_id']
         if not self.validate_json(cherrypy.request, required_fields):
-            ms = self.get_missing_fields(required_fields, cherrypy.request)
-            return self.response_message_error_fields(400, ms)
+            return self.missing_fields_response(
+                required_fields, cherrypy.request
+            )
 
         data = self.get_request_json(cherrypy.request)
 
@@ -276,8 +319,9 @@ class Posts(Tools):
     def unclaim(self):
         required_fields = ['api_key', 'post_id']
         if not self.validate_json(cherrypy.request, required_fields):
-            ms = self.get_missing_fields(required_fields, cherrypy.request)
-            return self.response_message_error_fields(400, ms)
+            return self.missing_fields_response(
+                required_fields, cherrypy.request
+            )
 
         data = self.get_request_json(cherrypy.request)
 
@@ -302,11 +346,17 @@ class Keys(Tools):
         return str(uuid.uuid4())
 
     @cherrypy.expose()
+    @cherrypy.tools.allow(methods=['POST'])
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def create(self):
-        required_fields = ['api_key', 'name', 'admin']
+        required_fields = ['api_key', 'name', 'is_admin']
         if self.validate_request(cherrypy.request):
+            if not self.validate_json(cherrypy.request, required_fields):
+                return self.missing_fields_response(
+                    required_fields, cherrypy.request
+                )
+
             data = self.get_request_json(cherrypy.request)
             new_api_key = self.generate_api_key()
             self.db.write_user_entry({
@@ -319,20 +369,38 @@ class Keys(Tools):
                 # rework.
                 'admin_api_key': data.get('api_key')
             })
-            return self.response_message_general(200, 'user created')
+
+            resp = self.response_message_general(200, 'user created')
+            resp.update({'new_user_data': {
+                'new_api_key': new_api_key,
+                'name': data.get('name'),
+                'is_admin': data.get('is_admin')
+            }})
+            return resp
         else:
             return self.response_message_general(500, 'something went wrong')
 
     @cherrypy.expose()
+    @cherrypy.tools.allow(methods=['POST'])
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def me(self):
         required_fields = ['api_key']
-        # TODO
-        return self.response_message_general(
-            418,
-            self.db.get_self(cherrypy.request.json.get('api_key'))
-        )
+        if not self.validate_json(cherrypy.request, required_fields):
+            return self.missing_fields_response(
+                required_fields, cherrypy.request
+            )
+
+        result = self.db.get_self(cherrypy.request.json.get('api_key'))
+        if result is None:
+            return self.response_message_general(
+                404,
+                'I don\'t see that API key in use anywhere.'
+            )
+        else:
+            resp = self.response_message_base(200)
+            resp.update(result)
+            return resp
 
     @cherrypy.expose()
     @cherrypy.tools.json_in()
@@ -392,9 +460,9 @@ class API(Tools):
 def set_extra_cherrypy_configs():
     # disable logging of requests -- mostly to pretty up the log and just
     # let us grab what we want
-    cherrypy.log.error_log.propagate = False
-    cherrypy.log.access_log.propagate = False
-    cherrypy.log.screen = None
+    # cherrypy.log.error_log.propagate = False
+    # cherrypy.log.access_log.propagate = False
+    # cherrypy.log.screen = None
 
     # global config update -- separate from the application-level conf dict
     cherrypy.config.update(
@@ -427,10 +495,7 @@ if __name__ == '__main__':
     api.keys.revoke = Keys().revoke
 
     # start your engines
-    try:
-        cherrypy.tree.mount(api, '/', conf)
-        cherrypy.server.socket_host = "127.0.0.1"
-        cherrypy.engine.start()
-        logging.info('ToR API started!')
-    except KeyboardInterrupt:
-        cherrypy.engine.stop()
+    cherrypy.tree.mount(api, '/')
+    cherrypy.server.socket_host = "127.0.0.1"
+    cherrypy.engine.start()
+    logging.info('ToR API started!')
