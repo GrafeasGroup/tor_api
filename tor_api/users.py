@@ -102,6 +102,9 @@ class User(object):
         self.user_data.update({'username': self.username})
         return self.user_data
 
+    def to_dict(self):
+        return self.user_data
+
 
 if __name__ == '__main__':
     pam = User('pam')
