@@ -1,6 +1,6 @@
 ## Claim Post
 
-Url: /Posts/claim
+Url: /claim
 
 Method: Any
 
@@ -15,7 +15,7 @@ Accepted JSON fields:
 
 ## Done Post
 
-Url: /Posts/done
+Url: /done
 
 Method: Any
 
@@ -29,7 +29,7 @@ Accepted JSON fields:
 
 ## Unclaim Post
 
-Url: /Posts/unclaim
+Url: /unclaim
 
 Method: Any
 
@@ -43,7 +43,7 @@ Accepted JSON fields:
 
 ## Create Keys
 
-Url: /Keys/create
+Url: /keys/create
 
 Method: Post
 
@@ -58,7 +58,7 @@ Accepted JSON fields:
 
 ## My Key
 
-Url: /Keys/me
+Url: /keys/me
 
 Method: Post
 
@@ -70,7 +70,7 @@ Accepted JSON fields:
 
 ## Revoke Key
 
-Url: /Keys/revoke
+Url: /keys/revoke
 
 Method: Any
 
@@ -83,7 +83,7 @@ Accepted JSON fields:
 
 ## User Index
 
-Url: /Users/index
+Url: /user
 
 Method: Any
 
@@ -96,7 +96,7 @@ Accepted JSON fields:
 
 ## API Index
 
-Url: /API/index
+Url: /
 
 Method: Any
 
