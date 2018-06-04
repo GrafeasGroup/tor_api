@@ -11,6 +11,7 @@ Accepted JSON fields:
 | api_key         | Yes      | String; the api key          |
 | name            | Yes      | String; the user's name      |
 | is_admin        | No       | Boolean; is an admin or not  |
+| debug           | No       | Int; debug to fixed output   |
 
 ## Done Post
 
@@ -24,6 +25,7 @@ Accepted JSON fields:
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
 | post_id         | Yes      | String; the post id          |
+| debug           | No       | Int; debug to fixed output   |
 
 ## Unclaim Post
 
@@ -37,6 +39,7 @@ Accepted JSON fields:
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
 | post_id         | Yes      | String; the post id          |
+| debug           | No       | Int; debug to fixed output   |
 
 ## Create Keys
 
