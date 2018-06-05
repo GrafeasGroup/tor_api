@@ -2,14 +2,15 @@
 
 Url: /claim
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
 | Field Name      | Required | Content                      |
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
-| name            | Yes      | String; the user's name      |
+| post_id         | Yes      | String; the Redis post id    |
+| name            | NO       | String; the user's name      |
 | is_admin        | No       | Boolean; is an admin or not  |
 | debug           | No       | Int; debug to fixed output   |
 
@@ -17,7 +18,7 @@ Accepted JSON fields:
 
 Url: /done
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
@@ -31,7 +32,7 @@ Accepted JSON fields:
 
 Url: /unclaim
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
@@ -43,36 +44,39 @@ Accepted JSON fields:
 
 ## Create Keys
 
+Admin only endpoint
+
 Url: /keys/create
 
-Method: Post
+Method: POST
 
 Accepted JSON fields:
 
 | Field Name    | Required | Content                      |
 |---------------|----------|------------------------------|
-| api_key       | Yes      | String; the api key          |
+| api_key       | Yes      | String; the api key(admin)   |
 | name          | Yes      | String; the user's name      |
 | is_admin      | No       | Boolean; is an admin or not  |
-| admin_api_key | No       | String; the admin api key    |
 
 ## My Key
 
+Admin only endpoint
+
 Url: /keys/me
 
-Method: Post
+Method: POST
 
 Accepted JSON fields:
 
 | Field Name      | Required | Content                      |
 |-----------------|----------|------------------------------|
-| api_key         | Yes      | String; the api key          |
+| api_key         | Yes      | String; the api key(admin)   |
 
 ## Revoke Key
 
 Url: /keys/revoke
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
@@ -85,7 +89,7 @@ Accepted JSON fields:
 
 Url: /user
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
@@ -98,11 +102,10 @@ Accepted JSON fields:
 
 Url: /
 
-Method: Any
+Method: POST
 
 Accepted JSON fields:
 
 | Field Name      | Required | Content                      |
 |-----------------|----------|------------------------------|
-| total_completed | Yes      | Int; the transcription count |
-| total_posted    | Yes      | Int; all posts of a user     |
+| api_key         | Yes      | String; the api key          |
