@@ -10,9 +10,6 @@ Accepted JSON fields:
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
 | post_id         | Yes      | String; the Redis post id    |
-| name            | NO       | String; the user's name      |
-| is_admin        | No       | Boolean; is an admin or not  |
-| debug           | No       | Int; debug to fixed output   |
 
 ## Done Post
 
@@ -60,8 +57,6 @@ Accepted JSON fields:
 
 ## My Key
 
-Admin only endpoint
-
 Url: /keys/me
 
 Method: POST
@@ -73,6 +68,8 @@ Accepted JSON fields:
 | api_key         | Yes      | String; the api key(admin)   |
 
 ## Revoke Key
+
+Admin only endpoint
 
 Url: /keys/revoke
 
