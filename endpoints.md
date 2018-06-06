@@ -10,6 +10,7 @@ Accepted JSON fields:
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
 | post_id         | Yes      | String; the Redis post id    |
+| debug           | No       | Int; debug to fixed output   |
 
 ## Done Post
 
