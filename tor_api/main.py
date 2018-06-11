@@ -604,7 +604,7 @@ class Users(Tools):
         self.log(data.get('api_key'), '/', data)
 
         username = self.get_request_json(cherrypy.request).get('username')
-        user = User(username, create_if_not_found=False)
+        user = User(username, self.r, create_if_not_found=False)
         if user is None:
             return self.response_message_general(404, 'User not found!')
         resp = self.response_message_base(200)
