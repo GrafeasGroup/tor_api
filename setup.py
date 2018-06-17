@@ -82,8 +82,9 @@ setup(
     tests_require=testing_deps,
     install_requires=[
         'redis<3.0.0',
-        'cherrypy',
+        'cherrypy'
+    ],
+    dependency_links=[
         'git+https://github.com/GrafeasGroup/tor_core.git@master#egg=tor_core-0',
-
-    ]
+    ],
 )
