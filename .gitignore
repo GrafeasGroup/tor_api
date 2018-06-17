@@ -103,3 +103,4 @@ ENV/
 
 .idea/*
 log.sqlite
+tor_api/tests/test_db.db
