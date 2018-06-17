@@ -10,13 +10,13 @@ import cherrypy
 
 from tor_core.initialize import configure_logging
 from tor_core.initialize import configure_redis
-from users import User
+from tor_api.users import User
 
 
 # noinspection SqlNoDataSourceInspection
 class DatabaseHandler(object):
-    def __init__(self):
-        self.db_name = './log.sqlite'
+    def __init__(self, db_name: str = './log.sqlite') -> None:
+        self.db_name = db_name
 
         if not os.path.exists(self.db_name):
             self.conn = sqlite3.connect(self.db_name)
@@ -87,10 +87,6 @@ class DatabaseHandler(object):
         conn.commit()
         self._close_conn(conn)
 
-    def log(self, request: cherrypy.request, data: Dict) -> Dict:
-        # TODO: stuff
-        pass
-
     def get_self(self, api_key: str) -> [dict, None]:
 
         def format_self(doohickey: tuple) -> Dict:
@@ -109,13 +105,9 @@ class DatabaseHandler(object):
             'SELECT * FROM users WHERE api_key = ?', (api_key,)
         )
         me = result.fetchone()
+        self._close_conn(conn)
         if isinstance(me, tuple):
             return format_self(me)
-        # but seriously we should never hit this
-        logging.error(
-            'Received /me call for invalid api key {}'.format(api_key)
-        )
-        self._close_conn(conn)
         return None
 
     def is_admin(self, api_key: str) -> bool:
@@ -159,7 +151,7 @@ class Tools(object):
         self.r = configure_redis()
         self.db = DatabaseHandler()
 
-    def log(self, api_key: str, endpoint:str, request_data: dict) -> None:
+    def log(self, api_key: str, endpoint: str, request_data: dict) -> None:
         """
         Package it all up into a nice little dict and send it off to the
         database.
@@ -581,7 +573,7 @@ class Keys(Tools):
             )
 
         data = self.get_request_json(cherrypy.request)
-        self.log(data.get('api_key'), '/', data)
+        self.log(data.get('api_key'), '/keys/revoke', data)
 
         self.db.revoke_key(data.get('revoked_key'))
 
@@ -601,7 +593,7 @@ class Users(Tools):
     @cherrypy.tools.require_api_key()
     def index(self):
         data = self.get_request_json(cherrypy.request)
-        self.log(data.get('api_key'), '/', data)
+        self.log(data.get('api_key'), '/user', data)
 
         username = self.get_request_json(cherrypy.request).get('username')
         user = User(username, self.r, create_if_not_found=False)
@@ -610,6 +602,31 @@ class Users(Tools):
         resp = self.response_message_base(200)
         resp.update({'user_data': user.to_dict()})
         return resp
+
+    @cherrypy.expose()
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    @cherrypy.tools.require_admin()
+    def create(self):
+        data = self.get_request_json(cherrypy.request)
+
+        # Posts to this endpoint will most likely be creating a user, which
+        # means that the request will likely have a hashed password in it.
+        # While there's nothing wrong with having a hashed password in the logs,
+        # there's also no reason to. Let's pull it out of the data before we
+        # write it, just to be on the safe side.
+        user_password = data.pop('password', None)
+
+        self.log(data.get('api_key'), '/user/create', data)
+        username = self.get_request_json(cherrypy.request).get('username')
+
+        user = User(username, self.r)
+        user.update('password', user_password)
+        # add the rest of the data
+        data.pop('api_key')
+        data.pop('username')
+        for k in data.keys():
+            user.update(k, data[k])
 
 
 class API(Tools):

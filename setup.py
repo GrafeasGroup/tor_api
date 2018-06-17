@@ -9,12 +9,13 @@ from setuptools import (
 )
 from setuptools.command.test import test as TestCommand
 
-from tor import __version__
+from tor_api import __version__
 
 
 class PyTest(TestCommand):
     user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
 
+    # noinspection PyAttributeOutsideInit
     def initialize_options(self):
         TestCommand.initialize_options(self)
         self.pytest_args = ''
@@ -69,18 +70,18 @@ setup(
     zip_safe=True,
     cmdclass={'test': PyTest},
     test_suite='test',
-    entry_points={
-        'console_scripts': [
-            'tor-api = tor-api:main',
-        ],
-    },
+    # entry_points={
+    #     'console_scripts': [
+    #         'tor-api=tor-api:main',
+    #     ],
+    # },
     extras_require={
         'dev': testing_deps + dev_helper_deps,
     },
+    setup_requires=["pytest-runner"],
     tests_require=testing_deps,
     install_requires=[
-		'redis<3.0.0',
-	    'cherrypy',
-	    'bugsnag'
+        'redis<3.0.0',
+        'cherrypy',
     ]
 )
