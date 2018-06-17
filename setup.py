@@ -99,7 +99,7 @@ setup(
     extras_require={
         'dev': testing_deps + dev_helper_deps,
     },
-    setup_requires=["pytest-runner"],
+    setup_requires=[],
     tests_require=testing_deps,
     install_requires=requires,
     dependency_links=dep_links,

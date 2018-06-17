@@ -20,7 +20,7 @@ install:
   - pip install codacy-coverage
 
 script:
-  - pytest --cov=tor_api
+  - python -m pytest --cov=tor_api
 
 after_success:
   - coverage xml
