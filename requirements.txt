@@ -1,4 +1,3 @@
 cherrypy
 redis
-git+git://github.com/GrafeasGroup/tor_core.git
-pytest
+git+git://github.com/grafeasgroup/tor_core@master#egg=tor_core

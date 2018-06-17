@@ -3,6 +3,7 @@
 import os
 import sys
 import codecs
+import re
 from setuptools import (
     setup,
     find_packages,
@@ -44,6 +45,21 @@ dev_helper_deps = [
     'better-exceptions',
 ]
 
+requires = []
+dep_links = []
+# parse requirements file
+with open('requirements.txt') as f:
+    comment = re.compile('(^#.*$|\s+#.*$)')
+    for line in f.readlines():
+        line = line.strip()
+        line = comment.sub('', line)
+        if line:
+            if line.startswith('git+') and '#egg=' in line:
+                dep_links.append(line)
+                requires.append(line.split('#egg=', 1)[1].replace('-', '=='))
+            else:
+                requires.append(line)
+
 
 setup(
     name='tor-api',
@@ -80,11 +96,6 @@ setup(
     },
     setup_requires=["pytest-runner"],
     tests_require=testing_deps,
-    install_requires=[
-        'redis<3.0.0',
-        'cherrypy'
-    ],
-    dependency_links=[
-        'git+https://github.com/GrafeasGroup/tor_core.git@master#egg=tor_core-0',
-    ],
+    install_requires=requires,
+    dependency_links=dep_links,
 )
