@@ -48,7 +48,7 @@ dev_helper_deps = [
 requires = []
 dep_links = []
 # parse requirements file
-with open('requirements.txt') as f:
+with open('requirements/base.txt') as f:
     comment = re.compile('(^#.*$|\s+#.*$)')
     for line in f.readlines():
         line = line.strip()
