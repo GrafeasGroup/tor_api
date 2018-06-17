@@ -16,7 +16,7 @@ matrix:
     - python: nightly
 
 install:
-  - pip install --process-dependency-links .[dev] --trusted-host github.com
+  - python setup.py develop
   - pip install codacy-coverage
 
 script:

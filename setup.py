@@ -60,6 +60,8 @@ with open('requirements.txt') as f:
             else:
                 requires.append(line)
 
+print(requires)
+print(dep_links)
 
 setup(
     name='tor-api',
