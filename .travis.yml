@@ -16,7 +16,7 @@ matrix:
     - python: nightly
 
 install:
-  - python setup.py develop
+  - pip install -r requirements.txt
   - pip install codacy-coverage
 
 script:

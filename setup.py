@@ -54,9 +54,12 @@ with open('requirements.txt') as f:
         line = line.strip()
         line = comment.sub('', line)
         if line:
-            if line.startswith('git+') and '#egg=' in line:
+            if line.startswith('git+'):
                 dep_links.append(line)
-                requires.append(line.split('#egg=', 1)[1].replace('-', '=='))
+                if '#egg=' in line:
+                    requires.append(
+                        line.split('#egg=', 1)[1].replace('-', '==')
+                    )
             else:
                 requires.append(line)
 
