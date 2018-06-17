@@ -83,5 +83,7 @@ setup(
     install_requires=[
         'redis<3.0.0',
         'cherrypy',
+        'git+https://github.com/GrafeasGroup/tor_core.git@master#egg=tor_core-0',
+
     ]
 )
