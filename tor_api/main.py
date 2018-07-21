@@ -9,8 +9,8 @@ from typing import List
 import cherrypy
 
 from tor_core.initialize import configure_logging
+from tor_api.models import User
 from tor_core.initialize import configure_redis
-from tor_api.users import User
 
 
 # noinspection SqlNoDataSourceInspection
@@ -596,8 +596,8 @@ class Users(Tools):
         self.log(data.get('api_key'), '/user', data)
 
         username = self.get_request_json(cherrypy.request).get('username')
-        user = User(username, self.r, create_if_not_found=False)
-        if user is None:
+        user = User(username)
+        if user['username'] == '':
             return self.response_message_general(404, 'User not found!')
         resp = self.response_message_base(200)
         resp.update({'user_data': user.to_dict()})
@@ -620,7 +620,7 @@ class Users(Tools):
         self.log(data.get('api_key'), '/user/create', data)
         username = self.get_request_json(cherrypy.request).get('username')
 
-        user = User(username, self.r)
+        user = User(username)
         user.update('password', user_password)
         # add the rest of the data
         data.pop('api_key')
