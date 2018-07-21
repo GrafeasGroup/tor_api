@@ -7,10 +7,10 @@ from typing import Dict
 from typing import List
 
 import cherrypy
-
 from tor_core.initialize import configure_logging
-from tor_api.models import User
 from tor_core.initialize import configure_redis
+
+from tor_api.models import User
 
 
 # noinspection SqlNoDataSourceInspection
@@ -624,9 +624,9 @@ class Users(Tools):
         user.update('password', user_password)
         # add the rest of the data
         data.pop('api_key')
-        data.pop('username')
         for k in data.keys():
             user.update(k, data[k])
+        user.save()
         resp = self.response_message_base(200)
         resp.update({'user_data': user.to_dict()})
         return resp
