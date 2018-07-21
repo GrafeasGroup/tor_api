@@ -53,7 +53,7 @@ Accepted JSON fields:
 | Field Name    | Required | Content                      |
 |---------------|----------|------------------------------|
 | api_key       | Yes      | String; the api key(admin)   |
-| name          | Yes      | String; the user's name      |
+| username      | Yes      | String; the user's name      |
 | is_admin      | No       | Boolean; is an admin or not  |
 
 ## My Key
@@ -83,9 +83,9 @@ Accepted JSON fields:
 | api_key         | Yes      | String; the api key          |
 | revoked_key     | Yes      | String; the key to revoke    |
 
-## User Index
+## User Lookup
 
-Url: /user
+Url: /user/lookup
 
 Method: POST
 
@@ -95,6 +95,20 @@ Accepted JSON fields:
 |-----------------|----------|------------------------------|
 | api_key         | Yes      | String; the api key          |
 | username        | Yes      | String; the user's name      |
+
+## User Create
+
+Url: /user/create
+
+Method: POST
+
+Accepted JSON fields:
+
+| Field Name      | Required | Content                            |
+|-----------------|----------|------------------------------------|
+| api_key         | Yes      | String; the api key                |
+| username        | Yes      | String; the user's username        |
+| password        | Yes      | String; the user's hashed password |
 
 ## API Index
 
