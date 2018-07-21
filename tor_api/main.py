@@ -15,7 +15,7 @@ from tor_core.initialize import configure_redis
 
 # noinspection SqlNoDataSourceInspection
 class DatabaseHandler(object):
-    def __init__(self, db_name: str = './log.sqlite') -> None:
+    def __init__(self, db_name: str = 'tor_api/log.sqlite') -> None:
         self.db_name = db_name
 
         if not os.path.exists(self.db_name):
@@ -27,7 +27,7 @@ class DatabaseHandler(object):
                 """
                 CREATE TABLE users (
                   api_key TEXT PRIMARY KEY,
-                  name TEXT,
+                  username TEXT,
                   is_admin BOOLEAN,
                   date_granted TIMESTAMP,
                   authed_by TEXT
@@ -78,7 +78,7 @@ class DatabaseHandler(object):
             'INSERT INTO users VALUES (?,?,?,?,?)',
             (
                 data.get('api_key'),
-                data.get('name'),
+                data.get('username'),
                 1 if data.get('is_admin') is True else 0,
                 datetime.now().isoformat(),
                 data.get('admin_api_key')
@@ -508,7 +508,7 @@ class Keys(Tools):
     @cherrypy.tools.json_out()
     @cherrypy.tools.require_admin()
     def create(self):
-        required_fields = ['api_key', 'name', 'is_admin']
+        required_fields = ['api_key', 'username', 'is_admin']
         if not self.validate_json(cherrypy.request, required_fields):
             return self.missing_fields_response(
                 required_fields, cherrypy.request
@@ -518,7 +518,7 @@ class Keys(Tools):
         new_api_key = self.generate_api_key()
         self.db.write_user_entry({
             'api_key': new_api_key,
-            'name': data.get('name'),
+            'username': data.get('username'),
             'is_admin': data.get('is_admin', False),
             # this is confusing. The admin api_key here is what was
             # submitted to complete the original request. It's logged as
@@ -591,7 +591,7 @@ class Users(Tools):
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     @cherrypy.tools.require_api_key()
-    def index(self):
+    def lookup(self):
         data = self.get_request_json(cherrypy.request)
         self.log(data.get('api_key'), '/user', data)
 
@@ -627,6 +627,9 @@ class Users(Tools):
         data.pop('username')
         for k in data.keys():
             user.update(k, data[k])
+        resp = self.response_message_base(200)
+        resp.update({'user_data': user.to_dict()})
+        return resp
 
 
 class API(Tools):
@@ -687,7 +690,9 @@ if __name__ == '__main__':
     api.done = Posts().done
     api.unclaim = Posts().unclaim
 
-    api.user = Users().index
+    api.user = Users()
+    api.user.lookup = Users().lookup
+    api.user.create = Users().create
 
     api.keys = Keys()
     api.keys.me = Keys().me
